@@ -9,7 +9,9 @@ extractedFileBaseName <- "UCI HAR Dataset";
 
 
 
-
+if(!exists("featurenames")){
+  featurenames <- NULL
+}
 if(!exists("activity")){
   activity <- NULL
 }
@@ -68,6 +70,7 @@ GettingCleaningDataCourseProject <- list(
     if(!file.exists(extractedFileBaseName)){
       downloadedFile <- download.file(fileUrl, destfile = destfileVar)
       dateDownloaded <- date()         
+      unzip(destfileVar)
     }
     
     firstLevelFolder <- list.dirs(path = extractedFileBaseName, full.names = TRUE, recursive = TRUE)
@@ -134,7 +137,9 @@ GettingCleaningDataCourseProject <- list(
     },
   
   extractsOnlyTheMeasurementsOnTheMeanAndStandardDeviationForEachMeasurement = function(){
-    featurenames   <- read.table(paste0(extractedFileBaseName,"/features.txt"));
+    if(is.null(featurenames)){
+      featurenames   <<- read.table(paste0(extractedFileBaseName,"/features.txt"));
+    }
     if(is.null(activityData)){
       meansfeatures  <<- grepl("(-std\\(\\)|-mean\\(\\))",featurenames$V2)    
     }
@@ -168,12 +173,28 @@ GettingCleaningDataCourseProject <- list(
   },
   
   createsSecondIndependentTidyDataSetWithAverageEach = function(){
-    library(reshape2)
-    molten <- melt(activityData,id.vars=c("subject","activity"))
-    tidy <- dcast(molten,subject + activity ~ variable,mean)
-    write.table(tidy, "dataset2.txt", sep="\t")
+    subject_test <- read.table("./UCI HAR Dataset/test/subject_test.txt", col.names = c('subject'))
+    subject_train <- read.table("./UCI HAR Dataset/train/subject_train.txt", col.names = c('subject'))
+    subject <- rbind(subject_test, subject_train)
+    averages <- aggregate(x_data_set, by = list(activity = y_data_set[,1], subject = subject[,1]), mean)
+    write.csv(averages, file='result.txt', row.names=FALSE)
   }
   
   
 )
+
+#1 - Merges the training and the test sets to create one data set.
+GettingCleaningDataCourseProject$mergesTheTrainingAndTheTestSetsToCreateOneDataSet()
+
+#2 - Extracts only the measurements on the mean and standard deviation for each measurement. 
+GettingCleaningDataCourseProject$extractsOnlyTheMeasurementsOnTheMeanAndStandardDeviationForEachMeasurement()
+
+#3 - Uses descriptive activity names to name the activities in the data set
+GettingCleaningDataCourseProject$usesDescriptiveActivityNamesToNameTheActivitiesInTheDataSet()
+
+#4 - Appropriately labels the data set with descriptive variable names. 
+GettingCleaningDataCourseProject$appropriatelyLabelTheDataSetWithDescriptiveVariableNames()
+
+#5 - From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+GettingCleaningDataCourseProject$createsSecondIndependentTidyDataSetWithAverageEach()
 
